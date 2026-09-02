@@ -1611,6 +1611,9 @@
     "appearance": {
       "title": "Appearance",
       "description": "Set the mode and accent colour used across the app. Saved to this device — try it, it changes live.",
+      "language": "Language",
+      "languageDesc": "Select the language used across the interface.",
+      "useLanguage": "Use {language}",
       "mode": "Mode",
       "useMode": "Use {mode} mode",
       "active": "Active",

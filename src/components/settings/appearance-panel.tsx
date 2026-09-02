@@ -1,28 +1,46 @@
 "use client";
 
-import { Check, Moon, Palette, SunMoon, Sun } from "lucide-react";
+import { Check, Globe, Moon, Palette, SunMoon, Sun } from "lucide-react";
 
 import { useTheme } from "@/hooks/use-theme";
 import { MODES, THEMES, type Mode, type ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { SettingsPanelHead } from "./settings-panel-head";
 
+interface LanguageOption {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+}
+
+const LANGUAGES: LanguageOption[] = [
+  { code: "pt-BR", name: "Português (Brasil)", nativeName: "Português do Brasil", flag: "🇧🇷" },
+  { code: "en", name: "English", nativeName: "English (US)", flag: "🇺🇸" },
+  { code: "ko", name: "한국어", nativeName: "한국어 (Korean)", flag: "🇰🇷" },
+];
+
 /**
- * Appearance panel — light/dark mode + accent-color picker.
+ * Appearance panel — language + light/dark mode + accent-color picker.
  *
- * Two independent controls: a mode toggle (light / dark) and the
- * accent grid. Either applies + persists immediately. No save button:
- * each change is a single attribute swap on <html>, there's nothing
- * to roll back.
- *
- * Persistence: localStorage only (device-scoped). The boot script in
- * layout.tsx replays both choices before first paint on subsequent
- * loads.
+ * Three controls: language selection, mode toggle (light / dark) and the
+ * accent grid. Either applies + persists immediately.
  */
 export function AppearancePanel() {
   const { theme, setTheme, mode, setMode } = useTheme();
+  const currentLocale = useLocale();
   const t = useTranslations("Settings.appearance");
+
+  const handleLanguageChange = (code: string) => {
+    document.cookie = `NEXT_LOCALE=${code}; path=/; max-age=31536000; SameSite=Lax`;
+    try {
+      localStorage.setItem("wacrm_locale", code);
+    } catch {
+      // ignore
+    }
+    window.location.reload();
+  };
 
   return (
     <section className="max-w-3xl animate-in fade-in-50 duration-200">
@@ -32,6 +50,34 @@ export function AppearancePanel() {
       />
 
       <div className="space-y-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Globe className="size-4 text-muted-foreground" />
+          {t("language")}
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {t("languageDesc")}
+        </p>
+
+        <div
+          role="radiogroup"
+          aria-label="Language selection"
+          className="grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3"
+        >
+          {LANGUAGES.map((lang) => (
+            <LanguageCard
+              key={lang.code}
+              code={lang.code}
+              name={lang.name}
+              nativeName={lang.nativeName}
+              flag={lang.flag}
+              isActive={currentLocale === lang.code}
+              onPick={() => handleLanguageChange(lang.code)}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 space-y-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <SunMoon className="size-4 text-muted-foreground" />
           {t("mode")}
@@ -74,6 +120,56 @@ export function AppearancePanel() {
         </div>
       </div>
     </section>
+  );
+}
+
+function LanguageCard({
+  code,
+  name,
+  nativeName,
+  flag,
+  isActive,
+  onPick,
+}: {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+  isActive: boolean;
+  onPick: () => void;
+}) {
+  const t = useTranslations("Settings.appearance");
+  return (
+    <button
+      type="button"
+      role="radio"
+      onClick={onPick}
+      aria-checked={isActive}
+      aria-label={t("useLanguage", { language: name })}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border bg-card p-4 text-left transition-colors",
+        isActive
+          ? "border-primary/60 ring-2 ring-primary/40"
+          : "border-border hover:border-border hover:bg-muted/40",
+      )}
+    >
+      <span
+        aria-hidden
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-lg"
+      >
+        {flag}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-foreground truncate">{name}</div>
+        <div className="text-xs text-muted-foreground truncate">{nativeName}</div>
+      </div>
+      {isActive && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary shrink-0">
+          <Check className="h-3 w-3" />
+          {t("active")}
+        </span>
+      )}
+    </button>
   );
 }
 
